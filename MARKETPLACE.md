@@ -23,7 +23,7 @@ desktop-pet  live2d  always-on-top  windows  mouse-transparent
 ```yaml
 - name: dsh-desktop-pet
   repo: https://github.com/AlaxonYegar/dsh-desktop-pet
-  author: 王嘉烨
+  author: AlaxonYegar
   description: 桌面 Live2D 桌宠：常驻置顶、鼠标穿透、不抢焦点、开机自启，自带模型导入
   license: MIT
   platform: windows
@@ -69,7 +69,7 @@ MIT
 |---|---|
 | `package.json` → `repository` / `homepage` / `bugs` | ✅ `AlaxonYegar/dsh-desktop-pet` |
 | `README.md` → 顶部徽章 | ✅ 已指向 `AlaxonYegar` |
-| `LICENSE` 版权人 | ✅ 王嘉烨 |
+| `LICENSE` 版权人 | ✅ AlaxonYegar |
 | 仓库内是否含模型文件 | ✅ 无（`.gitignore` 已挡） |
 
 ## 发布流程

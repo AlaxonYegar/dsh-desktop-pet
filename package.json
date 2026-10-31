@@ -5,7 +5,7 @@
   "type": "module",
   "main": "lib/index.js",
   "license": "MIT",
-  "author": "王嘉烨",
+  "author": "AlaxonYegar",
   "icon": "icon.png",
   "homepage": "https://github.com/AlaxonYegar/dsh-desktop-pet#readme",
   "repository": {
