@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>DeepSeek-chan</title>
+<style>
+  html, body {
+    margin: 0; width: 100%; height: 100%;
+    background: transparent; overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+  /* 窗口在系统层就是穿透的（ignoreMouseEvents），只有命中模型时才接收事件，
+     所以这里直接放开 pointer-events，不需要再挡一层 */
+  #stage { position: absolute; inset: 0; pointer-events: auto; }
+  body.drag-mode #stage { cursor: grab; }
+  body.drag-mode.dragging #stage { cursor: grabbing; }
+  #err {
+    position: absolute; left: 6px; bottom: 6px; display: none;
+    max-width: 94%; padding: 6px 9px; border-radius: 7px;
+    background: rgba(0,0,0,.78); color: #ff9a9a;
+    font: 12px/1.5 system-ui, "Microsoft YaHei", sans-serif;
+  }
+
+  /* --- 首次使用：选择模型 --- */
+  #import {
+    position: absolute; inset: 0; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    padding: 20px; text-align: center; box-sizing: border-box;
+    background: rgba(255,255,255,.97); border-radius: 14px;
+    border: 1px solid rgba(150,165,195,.35);
+    font: 13px/1.6 system-ui, "Microsoft YaHei", sans-serif; color: #46536b;
+  }
+  #import.show { display: flex; }
+  #import h4 { margin: 0; font-size: 14px; color: #2c3543; }
+  #import p { margin: 0; font-size: 12px; color: #7b8798; }
+  #import .tip { font-size: 11px; color: #98a2b3; }
+  #import button {
+    margin-top: 6px; padding: 8px 18px; border-radius: 9px; cursor: pointer;
+    font: 13px system-ui, "Microsoft YaHei", sans-serif;
+    color: #fff; background: #4a7dfb; border: 1px solid #3f6fe0;
+  }
+  #import button:hover { background: #3f6fe0; }
+  #import button:disabled { opacity: .6; cursor: default; }
+
+  /* --- 操作面板（点模型本体弹出）--- */
+  #panel {
+    position: absolute; right: 8px; top: 8px; width: 172px;
+    display: none; flex-direction: column; gap: 6px;
+    padding: 11px; border-radius: 14px;
+    background: rgba(252, 253, 255, .97);
+    border: 1px solid rgba(150, 165, 195, .35);
+    box-shadow: 0 10px 30px rgba(30, 45, 70, .18), 0 1px 2px rgba(30, 45, 70, .08);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+  }
+  body.panel-open #panel { display: flex; pointer-events: auto; }
+  #panel .head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  #panel .head .title { padding: 0 0 0 3px; }
+  #panel #panel-close {
+    flex: none; width: 22px; height: 22px; padding: 0;
+    display: grid; place-items: center;
+    font: 13px/1 system-ui, sans-serif; text-align: center;
+    color: #8b95a5; background: #f2f5fa; border: 1px solid #e2e7f0;
+    border-radius: 7px; cursor: pointer;
+  }
+  #panel #panel-close:hover { color: #d9544f; background: #ffeceb; border-color: #eebfbb; }
+  #panel .title {
+    font: 600 11px/1.4 system-ui, "Microsoft YaHei", sans-serif;
+    color: #7b8798; padding: 1px 3px 2px; letter-spacing: .6px;
+    text-transform: uppercase;
+  }
+  #panel .title:not(:first-child) { margin-top: 3px; }
+  #panel button {
+    font: 12.5px/1.3 system-ui, "Microsoft YaHei", sans-serif;
+    color: #2c3543; background: #f5f7fb; border: 1px solid #e2e7f0;
+    border-radius: 9px; padding: 7px 10px; text-align: left; cursor: pointer;
+    transition: background .12s ease, border-color .12s ease, transform .08s ease;
+  }
+  #panel button:hover { background: #eaf0fb; border-color: #c3d2ec; }
+  #panel button:active { transform: scale(.98); }
+  #panel .row { display: flex; gap: 6px; }
+  #panel .row button { flex: 1; text-align: center; padding: 7px 2px; }
+  #panel .danger { color: #d9544f; background: #fff6f5; border-color: #f3d9d7; }
+  #panel .danger:hover { background: #ffeceb; border-color: #eebfbb; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="panel">
+  <div class="head">
+    <div class="title">DeepSeek-chan</div>
+    <button id="panel-close" title="关闭面板">✕</button>
+  </div>
+  <button data-a="drag">强制可交互（开/关）</button>
+  <div class="title">大小</div>
+  <div class="row">
+    <button data-a="size:260">迷你</button>
+    <button data-a="size:340">小</button>
+    <button data-a="size:420">中</button>
+  </div>
+  <div class="row">
+    <button data-a="size:540">大</button>
+    <button data-a="size:680">特大</button>
+  </div>
+  <div class="row">
+    <button data-a="grow">＋</button>
+    <button data-a="shrink">－</button>
+  </div>
+  <button data-a="reset">回到右下角</button>
+  <button data-a="topmost">始终置顶（开/关）</button>
+  <button data-a="pick">选择模型…</button>
+  <button data-a="hide">隐藏她</button>
+  <button data-a="quit" class="danger">退出</button>
+</div>
+<div id="import">
+  <h4>还没有模型</h4>
+  <p id="import-msg">选择一个包含 .model3.json 的文件夹</p>
+  <button id="import-pick">选择模型文件夹</button>
+  <p class="tip">模型文件不随本程序分发<br>请使用你已获授权的模型</p>
+</div>
+<div id="err"></div>
+
+<script src="lib/live2dcubismcore.min.js"></script>
+<script src="lib/pixi.min.js"></script>
+<script src="lib/pixi-live2d-display.min.js"></script>
+<script>
+(async () => {
+  const errEl = document.getElementById("err");
+  const fail = (m) => { errEl.style.display = "block"; errEl.textContent = String(m).slice(0, 240); };
+
+  // ---------------- 模型导入 ----------------
+  const importBox = document.getElementById("import");
+  const importMsg = document.getElementById("import-msg");
+  const importBtn = document.getElementById("import-pick");
+
+  const showImport = (msg) => {
+    if (msg && importMsg) importMsg.textContent = msg;
+    if (importBox) importBox.classList.add("show");
+  };
+  const hideImport = () => { if (importBox) importBox.classList.remove("show"); };
+
+  const doPick = async () => {
+    if (importBtn) importBtn.disabled = true;
+    try {
+      await window.pet.pickModel();   // 选好后主进程会 reload
+    } catch (e) {
+      showImport("打开文件选择框失败：" + (e && e.message ? e.message : e));
+    } finally {
+      if (importBtn) importBtn.disabled = false;
+    }
+  };
+  if (importBtn) importBtn.addEventListener("click", (e) => { e.stopPropagation(); doPick(); });
+  window.pet.onRequestPickModel(() => doPick());
+
+  const app = new PIXI.Application({
+    resizeTo: window,
+    backgroundAlpha: 0,
+    antialias: true,
+    autoDensity: true,
+    resolution: Math.min(window.devicePixelRatio || 1, 2),
+    // 需要能读回画布像素来做"点模型才算点中"的透明检测
+    preserveDrawingBuffer: true,
+  });
+  document.getElementById("stage").appendChild(app.view);
+
+  const toUrl = (p) => "file:///" + String(p).replace(/\\/g, "/").replace(/^\/+/, "");
+
+  const modelPath = await window.pet.getModelPath().catch(() => "");
+  if (!modelPath) {
+    showImport("选择一个包含 .model3.json 的文件夹");
+    window.pet.ready();
+    return;
+  }
+
+  let model;
+  try {
+    model = await PIXI.live2d.Live2DModel.from(toUrl(modelPath), { autoInteract: false });
+  } catch (e) {
+    showImport("模型加载失败：" + (e && e.message ? e.message : e));
+    window.pet.ready();
+    return;
+  }
+  hideImport();
+  app.stage.addChild(model);
+  try { model.motion("Idle"); } catch (e) {}
+
+  // 底部对齐，按窗口高度铺满
+  const layout = () => {
+    const s = Math.min(app.screen.width / model.internalModel.width,
+                       app.screen.height / model.internalModel.height) * 1.02;
+    model.scale.set(s);
+    model.x = (app.screen.width - model.width) / 2;
+    model.y = app.screen.height - model.height;
+  };
+  layout();
+  window.addEventListener("resize", layout);
+
+  const core = model.internalModel.coreModel;
+  const setP = (id, v) => { try { core.setParameterValueById(id, v); } catch (e) {} };
+
+  // ---------------- 视线跟随 ----------------
+  // 鼠标离窗口中心 240px 就到最大幅度；半径固定，不随窗口大小变化
+  const RADIUS = 180;
+  const GAIN = 1.0;
+  const SMOOTH = 0.5;
+
+  let tx = 0, ty = 0;          // 目标（归一化 -1..1）
+  let cx = 0, cy = 0;          // 当前（平滑后）
+
+  window.pet.onCursor(({ x, y, w, h }) => {
+    tx = Math.max(-1, Math.min(1, (x - w / 2) / RADIUS));
+    ty = Math.max(-1, Math.min(1, (y - h / 2) / RADIUS));
+  });
+
+  const applyLook = () => {
+    const t = SMOOTH;
+    cx += (tx - cx) * t;
+    cy += (ty - cy) * t;
+    const dx = cx * GAIN;
+    const dy = cy * GAIN;
+
+    setP("ParamAngleX", dx * 30);
+    setP("ParamAngleY", -dy * 30);
+    setP("ParamAngleZ", dx * 10);
+
+    setP("ParamEyeBallX", dx);
+    setP("ParamEyeBallY", -dy);
+
+    setP("ParamBodyAngleX", dx * 20);
+    setP("ParamBodyAngleY", -dy * 12);
+    setP("ParamBodyAngleZ", dx * 8);
+
+    setP("HipAngleX", dx * 8);
+    setP("HipAngleY", -dy * 5);
+    setP("HipAngleZ", dx * 5);
+  };
+
+  // beforeModelUpdate 在模型每次更新前调用，参数写了才不会被覆盖
+  try {
+    model.internalModel.on("beforeModelUpdate", applyLook);
+  } catch (e) {
+    app.ticker.add(applyLook);
+  }
+
+  // ---------------- 表情 ----------------
+  const defs = (model.internalModel.settings && model.internalModel.settings.expressions) || [];
+  window.pet.onExpression((name) => {
+    if (!name) return;
+    try { model.expression(name); } catch (e) {}
+  });
+
+  // ---------------- 交互 ----------------
+  const body = document.body;
+  window.pet.onInteractive((v) => {
+    // 仅用于光标样式提示；拖动不再依赖这个模式
+    body.classList.toggle("drag-mode", !!v);
+  });
+
+  const stage = document.getElementById("stage");
+  let dragging = false;
+
+  window.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false;
+    body.classList.remove("dragging");
+    window.pet.dragEnd();
+  });
+
+  window.addEventListener("blur", () => {
+    if (!dragging) return;
+    dragging = false;
+    body.classList.remove("dragging");
+    window.pet.dragEnd();
+  });
+
+  window.addEventListener("wheel", (e) => {
+    window.pet.zoom(e.deltaY < 0 ? 1 : -1);
+  }, { passive: true });
+
+  // ---------------- 点模型本体 → 操作面板 ----------------
+  const panel = document.getElementById("panel");
+  let panelOpen = false;
+
+  const setPanel = (open) => {
+    panelOpen = open;
+    body.classList.toggle("panel-open", open);
+    document.title = open ? "DeepSeek-chan [PANEL]" : "DeepSeek-chan";
+    window.pet.uiState(open);
+  };
+
+  // 透明命中检测：把画布缩到 32x56 读 alpha，告诉主进程哪里有像素。
+  // 这样只有"真的点在模型身上"才会让窗口接收点击，其余区域继续穿透。
+  const MASK_W = 32, MASK_H = 56;
+  const maskCanvas = document.createElement("canvas");
+  maskCanvas.width = MASK_W;
+  maskCanvas.height = MASK_H;
+  const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+
+  const pushMask = () => {
+    try {
+      maskCtx.clearRect(0, 0, MASK_W, MASK_H);
+      const src = app.view;
+      if (!src || !src.width) return;
+      maskCtx.drawImage(src, 0, 0, MASK_W, MASK_H);
+      const data = maskCtx.getImageData(0, 0, MASK_W, MASK_H).data;
+      const bits = new Uint8Array(MASK_W * MASK_H);
+      for (let i = 0; i < bits.length; i++) bits[i] = data[i * 4 + 3] > 12 ? 1 : 0;
+      window.pet.mask({ w: MASK_W, h: MASK_H, bits: Array.from(bits) });
+    } catch (e) {}
+  };
+
+  // 必须在渲染完成后立刻读，否则 WebGL 缓冲已被清空，读到全透明
+  let maskTick = 0;
+  try {
+    app.renderer.on("postrender", () => {
+      if (++maskTick % 20 === 0) pushMask();
+    });
+  } catch (e) {
+    setInterval(pushMask, 250);
+  }
+
+  // 左键按住即拖动（不再需要拖动模式）；右键开面板，见下方 contextmenu
+  stage.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    dragging = true;
+    body.classList.add("dragging");
+    window.pet.dragBegin();
+  });
+
+  panel.addEventListener("click", (e) => {
+    // 关闭按钮：只收面板，不往主进程发无效动作
+    if (e.target.closest("#panel-close")) {
+      setPanel(false);
+      return;
+    }
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    const a = btn.dataset.a;
+    if (a === "pick") { doPick(); return; }
+    window.pet.action(a);
+    if (a !== "drag" && a !== "topmost") setPanel(false);
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && panelOpen) setPanel(false);
+  });
+
+  // 右键：打开/关闭操作面板（任何时候都生效）
+  window.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    setPanel(!panelOpen);
+  });
+
+  window.pet.ready();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# dsh-desktop-pet bundle patch —— 把桌面桌宠挂进 DSH
+- insert:
+    - id: desktop-pet
+      name: dsh-desktop-pet

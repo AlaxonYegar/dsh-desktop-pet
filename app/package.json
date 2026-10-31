@@ -1,0 +1,8 @@
+{
+  "name": "deepseek-pet-player",
+  "productName": "DesktopPet Player",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A lightweight Live2D desktop pet player for Windows",
+  "main": "main.js"
+}

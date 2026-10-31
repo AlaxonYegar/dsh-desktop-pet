@@ -1,0 +1,44 @@
+{
+  "name": "dsh-desktop-pet",
+  "version": "1.0.0",
+  "description": "桌面 Live2D 桌宠插件 for DSH：常驻置顶、鼠标穿透、不抢焦点、多显示器、开机自启、自带模型导入。不打包任何模型文件。",
+  "type": "module",
+  "main": "lib/index.js",
+  "license": "MIT",
+  "author": "王嘉烨",
+  "icon": "icon.png",
+  "homepage": "https://github.com/AlaxonYegar/dsh-desktop-pet#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlaxonYegar/dsh-desktop-pet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AlaxonYegar/dsh-desktop-pet/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "desktop-pet",
+    "live2d",
+    "always-on-top",
+    "windows"
+  ],
+  "files": [
+    "lib",
+    "app",
+    "cordis.patch.yml",
+    "icon.png",
+    "README.md",
+    "NOTICE.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
