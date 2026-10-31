@@ -41,3 +41,20 @@
 使用者需自行准备模型，并遵守该模型作者的使用条款。以 DeepSeek-chan
 模型为例，其条款明确禁止重新分发模型文件、也禁止将其打包进付费产品
 （需作者事先书面同意）。请勿把他人模型放进本程序的发行包中分发。
+
+---
+
+## 关于本项目自身的许可范围
+
+`LICENSE` 中的 MIT 许可**仅覆盖本项目自身的代码**（`lib/index.js` 与 `app/` 下的
+main.js / pet.html / preload.js）。
+
+`app/lib/` 下的三个文件不属于本项目：
+
+| 文件 | 归属 | 许可 |
+|---|---|---|
+| `live2dcubismcore.min.js` | Live2D Inc. | Live2D Proprietary Software License Agreement |
+| `pixi.min.js` | PixiJS | MIT |
+| `pixi-live2d-display.min.js` | pixi-live2d-display | MIT |
+
+本项目**不包含任何 Live2D 模型文件**。

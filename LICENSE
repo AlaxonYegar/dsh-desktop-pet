@@ -19,13 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-注意：本 MIT 许可仅覆盖本项目自身的代码（含 app/ 与 lib/index.js）。
-
-以下组件不在本许可范围内，各有其自己的条款，见 NOTICE.md：
-- Live2D Cubism Core（Live2D Proprietary Software License Agreement）
-- Electron、PixiJS、pixi-live2d-display（MIT，保留各自版权声明）
-
-本发行包不包含任何 Live2D 模型文件。
